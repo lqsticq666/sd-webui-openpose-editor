@@ -2,6 +2,7 @@ import { toRaw, markRaw } from 'vue';
 import { fabric } from 'fabric';
 import _ from 'lodash';
 import { COCO18 } from './PoseFormats';
+import type { PoseFormat } from './PoseFormats';
 
 const IDENTITY_MATRIX = [1, 0, 0, 1, 0, 0];
 
@@ -418,7 +419,7 @@ function formatColor(color: [number, number, number]): string {
     return `rgb(${color.join(", ")})`;
 }
 
-class OpenposeBody extends OpenposeObject {
+class OpenposeBody extends OpenposeObject {poseFormat: PoseFormat;
     /**
      * @param {Array<Array<float>>} rawKeypoints keypoints directly read from the openpose JSON format
      * [
@@ -427,8 +428,8 @@ class OpenposeBody extends OpenposeObject {
      *   ...
      * ]
      */
-    constructor(rawKeypoints: [number, number, number][]) {
-        const keypoints = _.zipWith(rawKeypoints, COCO18.keypointColors, COCO18.keypointNames,
+    constructor(rawKeypoints: [number, number, number][],poseFormat: PoseFormat) {
+        const keypoints = _.zipWith(rawKeypoints, poseFormat.keypointColors, poseFormat.keypointNames,
             (p, color, keypoint_name) => new OpenposeKeypoint2D(
                 p[0],
                 p[1],
@@ -440,7 +441,7 @@ class OpenposeBody extends OpenposeObject {
             ));
 
         // TODO: Use the number of connections defined by the pose format.
-        const connections = _.zipWith(COCO18.keypointConnections, COCO18.keypointColors.slice(0, 17),
+        const connections = _.zipWith(poseFormat.keypointConnections, poseFormat.keypointColors.slice(0, 17),
             (connection, color) => {
                 return new OpenposeConnection(
                     keypoints[connection[0]],
@@ -452,22 +453,25 @@ class OpenposeBody extends OpenposeObject {
             });
 
         super(keypoints, connections);
+        this.poseFormat = poseFormat;
         this.flippable = true;
     }
 
-    static create(rawKeypoints: [number, number, number][]): OpenposeBody | undefined {
-        if (rawKeypoints.length < COCO18.keypointNames.length) {
+    static create(rawKeypoints: [number, number, number][],poseFormat: PoseFormat): OpenposeBody | undefined {
+        if (rawKeypoints.length < poseFormat.keypointNames.length) {
             console.warn(
                 `Wrong number of keypoints for openpose body(Coco format). 
-                Expect ${COCO18.keypointNames.length} but got ${rawKeypoints.length}.`)
+                Expect ${poseFormat.keypointNames.length} but got ${rawKeypoints.length}.`)
             return undefined;
         }
-        rawKeypoints.slice(0, COCO18.keypointNames.length);
-        return new OpenposeBody(rawKeypoints);
+        // TODO: Trim the keypoint array to the selected pose format.
+        // The current slice() call has no effect because its return value is ignored.
+        rawKeypoints.slice(0, poseFormat.keypointNames.length);
+        return new OpenposeBody(rawKeypoints,poseFormat);
     }
 
     getKeypointByName(name: string): OpenposeKeypoint2D {
-        const index = COCO18.keypointNames.findIndex(s => s === name);
+        const index = this.poseFormat.keypointNames.findIndex(s => s === name);
         if (index === -1) {
             throw `'${name}' not found in keypoint names.`;
         }

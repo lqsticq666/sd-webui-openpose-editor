@@ -19,6 +19,7 @@ import type { UploadFile } from 'ant-design-vue';
 import LockSwitch from './components/LockSwitch.vue';
 import _ from 'lodash';
 import CryptoJS from 'crypto-js';
+import { COCO18 } from './PoseFormats';
 
 interface LockableUploadFile extends UploadFile {
   locked: boolean;
@@ -529,7 +530,7 @@ export default defineComponent({
       this.canvas?.renderAll();
     },
     addDefaultPerson() {
-      const newPerson = new OpenposePerson(null, new OpenposeBody(default_body_keypoints));
+      const newPerson = new OpenposePerson(null, new OpenposeBody(default_body_keypoints,COCO18));
       this.addPerson(newPerson);
     },
     removePerson(person: OpenposePerson) {
@@ -815,7 +816,7 @@ export default defineComponent({
 
 
       return (poseJson.people || []).map((personJson): OpenposePerson | undefined => {
-        const body = OpenposeBody.create(preprocessPoints(personJson.pose_keypoints_2d, canvasWidth, canvasHeight));
+        const body = OpenposeBody.create(preprocessPoints(personJson.pose_keypoints_2d, canvasWidth, canvasHeight),COCO18);
         if (body === undefined) {
           // If body is malformatted, no need to render face/hand.
           return undefined;
