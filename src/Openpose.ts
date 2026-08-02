@@ -1,6 +1,7 @@
 import { toRaw, markRaw } from 'vue';
 import { fabric } from 'fabric';
 import _ from 'lodash';
+import { COCO18 } from './PoseFormats';
 
 const IDENTITY_MATRIX = [1, 0, 0, 1, 0, 0];
 
@@ -418,43 +419,6 @@ function formatColor(color: [number, number, number]): string {
 }
 
 class OpenposeBody extends OpenposeObject {
-    static keypoints_connections: [number, number][] = [
-        [0, 1], [1, 2], [2, 3], [3, 4],
-        [1, 5], [5, 6], [6, 7], [1, 8],
-        [8, 9], [9, 10], [1, 11], [11, 12],
-        [12, 13], [0, 14], [14, 16], [0, 15],
-        [15, 17],
-    ];
-
-    static colors: [number, number, number][] = [
-        [255, 0, 0], [255, 85, 0], [255, 170, 0], [255, 255, 0],
-        [170, 255, 0], [85, 255, 0], [0, 255, 0], [0, 255, 85],
-        [0, 255, 170], [0, 255, 255], [0, 170, 255], [0, 85, 255],
-        [0, 0, 255], [85, 0, 255], [170, 0, 255], [255, 0, 255],
-        [255, 0, 170], [255, 0, 85]
-    ];
-
-    static keypoint_names = [
-        "nose",
-        "neck",
-        "right_shoulder",
-        "right_elbow",
-        "right_wrist",
-        "left_shoulder",
-        "left_elbow",
-        "left_wrist",
-        "right_hip",
-        "right_knee",
-        "right_ankle",
-        "left_hip",
-        "left_knee",
-        "left_ankle",
-        "right_eye",
-        "left_eye",
-        "right_ear",
-        "left_ear",
-    ];
-
     /**
      * @param {Array<Array<float>>} rawKeypoints keypoints directly read from the openpose JSON format
      * [
@@ -464,7 +428,7 @@ class OpenposeBody extends OpenposeObject {
      * ]
      */
     constructor(rawKeypoints: [number, number, number][]) {
-        const keypoints = _.zipWith(rawKeypoints, OpenposeBody.colors, OpenposeBody.keypoint_names,
+        const keypoints = _.zipWith(rawKeypoints, COCO18.keypointColors, COCO18.keypointNames,
             (p, color, keypoint_name) => new OpenposeKeypoint2D(
                 p[0],
                 p[1],
@@ -475,7 +439,8 @@ class OpenposeBody extends OpenposeObject {
                 /* constant_radius= */ 4
             ));
 
-        const connections = _.zipWith(OpenposeBody.keypoints_connections, OpenposeBody.colors.slice(0, 17),
+        // TODO: Use the number of connections defined by the pose format.
+        const connections = _.zipWith(COCO18.keypointConnections, COCO18.keypointColors.slice(0, 17),
             (connection, color) => {
                 return new OpenposeConnection(
                     keypoints[connection[0]],
@@ -491,18 +456,18 @@ class OpenposeBody extends OpenposeObject {
     }
 
     static create(rawKeypoints: [number, number, number][]): OpenposeBody | undefined {
-        if (rawKeypoints.length < OpenposeBody.keypoint_names.length) {
+        if (rawKeypoints.length < COCO18.keypointNames.length) {
             console.warn(
                 `Wrong number of keypoints for openpose body(Coco format). 
-                Expect ${OpenposeBody.keypoint_names.length} but got ${rawKeypoints.length}.`)
+                Expect ${COCO18.keypointNames.length} but got ${rawKeypoints.length}.`)
             return undefined;
         }
-        rawKeypoints.slice(0, OpenposeBody.keypoint_names.length);
+        rawKeypoints.slice(0, COCO18.keypointNames.length);
         return new OpenposeBody(rawKeypoints);
     }
 
     getKeypointByName(name: string): OpenposeKeypoint2D {
-        const index = OpenposeBody.keypoint_names.findIndex(s => s === name);
+        const index = COCO18.keypointNames.findIndex(s => s === name);
         if (index === -1) {
             throw `'${name}' not found in keypoint names.`;
         }
@@ -867,7 +832,7 @@ class OpenposeAnimal extends OpenposeObject {
         if (rawKeypoints.length < OpenposeAnimal.keypoint_names.length) {
             console.warn(
                 `Wrong number of keypoints for openpose body(Coco format). 
-                Expect ${OpenposeBody.keypoint_names.length} but got ${rawKeypoints.length}.`)
+                Expect ${COCO18.keypointNames.length} but got ${rawKeypoints.length}.`)
             return undefined;
         }
         rawKeypoints.slice(0, OpenposeAnimal.keypoint_names.length);
