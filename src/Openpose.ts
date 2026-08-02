@@ -440,8 +440,7 @@ class OpenposeBody extends OpenposeObject {poseFormat: PoseFormat;
                 /* constant_radius= */ 4
             ));
 
-        // TODO: Use the number of connections defined by the pose format.
-        const connections = _.zipWith(poseFormat.keypointConnections, poseFormat.keypointColors.slice(0, 17),
+        const connections = _.zipWith(poseFormat.keypointConnections, poseFormat.keypointColors.slice(0, poseFormat.keypointConnections.length),
             (connection, color) => {
                 return new OpenposeConnection(
                     keypoints[connection[0]],
